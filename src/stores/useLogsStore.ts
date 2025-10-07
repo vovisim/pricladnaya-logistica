@@ -31,8 +31,8 @@ export const useLogStore = defineStore('logs', {
             return {
               type: log.type,
               id: this.id,
-              title: `Вы нажали на кнопку`,
-              content: `Вы нажали на кнопку ${log.info}`,
+              title: `Отправка на сервер.`,
+              content: `${log.info}`,
             };
         }
       };

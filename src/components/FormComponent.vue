@@ -51,7 +51,7 @@ const submitValues = handleSubmit(async (values) => {
 
     logStore.createLog({
       type: 'hasResponse',
-      info: `отправлено: ${JSON.stringify(values)}, в localStorage: ${JSON.stringify(itemsStore.item)}`,
+      info: `Отправлено: ${JSON.stringify(values)}, в localStorage: ${JSON.stringify(itemsStore.item)}`,
     });
 
     if (res.success) {
