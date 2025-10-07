@@ -38,7 +38,7 @@ const clearDialogHandler = () => {
           :log="item"
         />
       </div>
-      <div v-else class="m-auto text-xl">Логов пока что нету</div>
+      <div v-else class="m-auto text-xl">Логов пока что нет</div>
     </CardContent>
     <CardFooter>
       <Button
