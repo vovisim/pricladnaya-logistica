@@ -10,7 +10,9 @@ export const useLogStore = defineStore('logs', {
   }),
   persist: true,
   actions: {
+    // создание лога
     createLog(log: LogCreatePayload): ServerResponse {
+      // генерация нужного сообщения
       const generateLog = (log: LogCreatePayload): ILog => {
         switch (log.type) {
           case 'inputChange':

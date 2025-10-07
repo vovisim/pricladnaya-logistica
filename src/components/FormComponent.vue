@@ -68,6 +68,7 @@ const submitValues = handleSubmit(async (values) => {
   });
 });
 
+// Логируем изменения в инпутах
 const debouncedLog = useDebounceFn((inputNum: number) => {
   values.value.amount = Number(values.value.price || 0) * Number(values.value.qty || 0);
   logStore.createLog({

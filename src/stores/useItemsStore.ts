@@ -9,8 +9,8 @@ export const useItemsStore = defineStore('items', {
   }),
   persist: true,
   actions: {
+    // Обновления товара
     updateItem(updated: Partial<IItem>): Promise<ServerResponse> {
-      // Обновления товара
       return new Promise((resolve) => {
         setTimeout(() => {
           if (this.counter % 2 === 0) {
