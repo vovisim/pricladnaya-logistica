@@ -6,13 +6,18 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { toTypedSchema } from '@vee-validate/zod';
 import { z } from 'zod';
 import { useForm, useFormValues } from 'vee-validate';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useToast } from '@/components/ui/toast/use-toast';
+import { useLogStore } from '@/stores/useLogsStore.ts';
+import type { IItem } from '@/types/Item/IItem.ts';
+import { useDebounceFn } from '@vueuse/core';
 
 const itemsStore = useItemsStore();
-const amount = computed(() => Number(values.value.price || 0) * Number(values.value.qty || 0));
+const logStore = useLogStore();
+const amount = computed(() => Number(values.value.price || 0) * Number(values.value.qty || 0)); // Считает сумму
 const { toast } = useToast();
 
+// Схема формы для валидации
 const formSchema = toTypedSchema(
   z.object({
     price: z.number({ message: 'Поле должно быть числом' }).min(1, 'Цена должна быть больше 0'),
@@ -21,6 +26,7 @@ const formSchema = toTypedSchema(
   }),
 );
 
+// Создание формы с дэфолтными значениями
 const { handleSubmit, isFieldDirty } = useForm({
   validationSchema: formSchema,
   initialValues: {
@@ -32,9 +38,21 @@ const { handleSubmit, isFieldDirty } = useForm({
 
 const values = useFormValues();
 
+// Отправка данных на сервер после валидации
 const submitValues = handleSubmit(async (values) => {
+  logStore.createLog({
+    type: 'submitPress',
+    info: 'Отправить данные',
+  });
+  const currentValues: Partial<IItem> = JSON.parse(JSON.stringify(values));
+
   await itemsStore.updateItem(values).then((res) => {
     if (!res) return;
+
+    logStore.createLog({
+      type: 'hasResponse',
+      info: `отправлено: ${JSON.stringify(values)}, в localStorage: ${JSON.stringify(itemsStore.item)}`,
+    });
 
     if (res.success) {
       toast({
@@ -45,10 +63,23 @@ const submitValues = handleSubmit(async (values) => {
       toast({
         title: 'Ошибка',
         description: 'Ошибка сохранения данных',
+        variant: 'destructive',
       });
     }
   });
 });
+
+const debouncedLog = useDebounceFn((inputNum: number) => {
+  values.value.amount = Number(values.value.price || 0) * Number(values.value.qty || 0);
+  logStore.createLog({
+    type: 'inputChange',
+    info: inputNum.toString(),
+  });
+}, 300);
+
+const logChangedInput = (inputNum: number) => {
+  debouncedLog(inputNum);
+};
 </script>
 
 <template>
@@ -58,7 +89,12 @@ const submitValues = handleSubmit(async (values) => {
         <FormItem class="flex-1">
           <FormLabel>Цена</FormLabel>
           <FormControl>
-            <Input type="number" placeholder="Цена товара" v-bind="componentField" />
+            <Input
+              v-bind="componentField"
+              type="number"
+              placeholder="Цена товара"
+              @input="logChangedInput(1)"
+            />
           </FormControl>
           <div class="min-h-[20px]">
             <FormMessage />
@@ -69,18 +105,23 @@ const submitValues = handleSubmit(async (values) => {
         <FormItem class="flex-1">
           <FormLabel>Кол-во</FormLabel>
           <FormControl>
-            <Input type="number" placeholder="Кол-во" v-bind="componentField" />
+            <Input
+              v-bind="componentField"
+              type="number"
+              placeholder="Кол-во"
+              @input="logChangedInput(2)"
+            />
           </FormControl>
           <div class="min-h-[20px]">
             <FormMessage />
           </div>
         </FormItem>
       </FormField>
-      <FormField name="amount">
+      <FormField v-slot="{ componentField }" name="amount">
         <FormItem class="flex-1">
           <FormLabel>Сумма</FormLabel>
           <FormControl>
-            <Input type="number" :value="amount" disabled />
+            <Input v-bind="componentField" type="number" disabled @input="logChangedInput(3)" />
           </FormControl>
           <div class="min-h-[20px]">
             <FormMessage />
