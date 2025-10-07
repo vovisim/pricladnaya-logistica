@@ -1,59 +1,99 @@
 <script setup lang="ts">
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { ref } from 'vue'
-import type { IItem } from '@/types/IItem.ts'
-import { useItemsStore } from '@/stores/useItemsStore.ts'
-import { toTypedSchema } from '@vee-validate/zod'
-import * as z from 'zod'
-import { useForm } from 'vee-validate'
-import { FormControl, FormDescription, FormItem, FormLabel } from '@/components/ui/form'
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useItemsStore } from '@/stores/useItemsStore.ts';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toTypedSchema } from '@vee-validate/zod';
+import { z } from 'zod';
+import { useForm, useFormValues } from 'vee-validate';
+import { computed } from 'vue';
+import { useToast } from '@/components/ui/toast/use-toast';
 
 const itemsStore = useItemsStore();
+const amount = computed(() => Number(values.value.price || 0) * Number(values.value.qty || 0));
+const { toast } = useToast();
 
-const submitValues = () => {
-  itemsStore.updateItem(editedData.value as Omit<IItem, "amount">);
-  editedData.value = JSON.parse(JSON.stringify(itemsStore.item));
-}
+const formSchema = toTypedSchema(
+  z.object({
+    price: z.number({ message: 'Поле должно быть числом' }).min(1, 'Цена должна быть больше 0'),
+    qty: z.number({ message: 'Поле должно быть числом' }).min(1, 'Количество должно быть больше 0'),
+    amount: z.number({ message: 'Поле должно быть числом' }).optional(),
+  }),
+);
 
-const formSchema = toTypedSchema(z.object({
-  price: z.number().min(1).max(10),
-  qty: z.number().min(1),
-  amount: z.number(),
-}))
-
-const { isFieldDirty, handleSubmit } = useForm({
+const { handleSubmit, isFieldDirty } = useForm({
   validationSchema: formSchema,
-})
+  initialValues: {
+    price: itemsStore.item.price ?? 0,
+    qty: itemsStore.item.qty ?? 0,
+    amount: itemsStore.item.amount ?? 0,
+  },
+});
 
-const onSubmit = handleSubmit((values) => {
-  console.log('Form submitted!', values)
-})
+const values = useFormValues();
+
+const submitValues = handleSubmit(async (values) => {
+  await itemsStore.updateItem(values).then((res) => {
+    if (!res) return;
+
+    if (res.success) {
+      toast({
+        title: 'Успешно',
+        description: 'Мы успешно сохранили ваши данные',
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Ошибка сохранения данных',
+      });
+    }
+  });
+});
 </script>
 
 <template>
   <div class="grid gap-5">
-    <Form @submit="submitValues" class="flex justify-between items-center gap-3">
-      <FormItem v-slot="{ componentField }" name="username" :validate-on-blur="!isFieldDirty">
-        <FormLabel>Username</FormLabel>
-        <FormControl>
-          <Input type="text" placeholder="shadcn" v-bind="componentField" />
-        </FormControl>
-        <FormDescription>
-          This is your public display name.
-        </FormDescription>
-        <FormMessage />
-      </FormItem>
-      <Input v-model:model-value="editedData.price" placeholder="Цена"/>
-      <Input v-model:model-value="editedData.qty" placeholder="Кол-во" />
-      <Input :model-value="editedData.price * editedData.qty" disabled placeholder="Сумма" />
-      <Button type="submit">Отправить данные</Button>
-    </Form>
+    <form class="flex justify-between items-end gap-3" @submit="submitValues">
+      <FormField v-slot="{ componentField }" name="price" :validate-on-blur="!isFieldDirty">
+        <FormItem class="flex-1">
+          <FormLabel>Цена</FormLabel>
+          <FormControl>
+            <Input type="number" placeholder="Цена товара" v-bind="componentField" />
+          </FormControl>
+          <div class="min-h-[20px]">
+            <FormMessage />
+          </div>
+        </FormItem>
+      </FormField>
+      <FormField v-slot="{ componentField }" name="qty" :validate-on-blur="!isFieldDirty">
+        <FormItem class="flex-1">
+          <FormLabel>Кол-во</FormLabel>
+          <FormControl>
+            <Input type="number" placeholder="Кол-во" v-bind="componentField" />
+          </FormControl>
+          <div class="min-h-[20px]">
+            <FormMessage />
+          </div>
+        </FormItem>
+      </FormField>
+      <FormField name="amount">
+        <FormItem class="flex-1">
+          <FormLabel>Сумма</FormLabel>
+          <FormControl>
+            <Input type="number" :value="amount" disabled />
+          </FormControl>
+          <div class="min-h-[20px]">
+            <FormMessage />
+          </div>
+        </FormItem>
+      </FormField>
+      <Button type="submit" class="flex-1 mb-[28px]">Отправить данные</Button>
+    </form>
     <div class="flex justify-between items-center gap-3">
-      <div class="">{{itemsStore.item.price}}</div>
-      <div class="">{{itemsStore.item.qty}}</div>
-      <div class="">{{itemsStore.item.amount}}</div>
-      <div class="">{{itemsStore.item}}</div>
+      <label class="flex-1">{{ itemsStore.item.price }}</label>
+      <label class="flex-1">{{ itemsStore.item.qty }}</label>
+      <label class="flex-1">{{ itemsStore.item.amount }}</label>
+      <label class="flex-1">{{ itemsStore.item }}</label>
     </div>
   </div>
 </template>

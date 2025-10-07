@@ -1,15 +1,30 @@
-import { defineStore } from "pinia";
-import type { IItem } from '@/types/IItem.ts'
+import { defineStore } from 'pinia';
+import type { IItem } from '@/types/Item/IItem.ts';
+import type { ServerResponse } from '@/types/Item/type';
 
 export const useItemsStore = defineStore('items', {
   state: () => ({
     item: {} as IItem,
+    counter: 0,
   }),
   persist: true,
   actions: {
-    updateItem(updated: Partial<IItem>) {
-      this.item = { ...this.item, ...updated };
-      this.item.amount = this.item.price * this.item.qty;
-    }
-  }
+    updateItem(updated: Partial<IItem>): Promise<ServerResponse> {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          if (this.counter % 2 === 0) {
+            this.item = { ...this.item, ...updated, counter: this.counter };
+            this.item.amount = (this.item.price ?? 0) * (this.item.qty ?? 0);
+
+            this.counter++;
+            resolve({ success: true });
+          } else {
+            this.counter++;
+            this.item = { ...this.item, counter: this.counter };
+            resolve({ success: false });
+          }
+        }, 1000);
+      });
+    },
+  },
 });
